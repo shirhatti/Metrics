@@ -1,4 +1,7 @@
-﻿using Microsoft.AspNetCore.Routing;
+﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Metrics;
 using System;
 
 namespace Microsoft.AspNetCore.Builder
@@ -12,6 +15,11 @@ namespace Microsoft.AspNetCore.Builder
                 throw new ArgumentNullException(nameof(builder));
             }
 
+            builder.MapGet("/metrics", async context =>
+            {
+                var metricsService = context.RequestServices.GetRequiredService<IMetricsData>();
+                await context.Response.WriteAsync(metricsService.DumpToString());
+            });
             return builder;
         }
     }
