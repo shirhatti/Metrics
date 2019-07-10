@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics.Tracing;
@@ -13,20 +14,22 @@ namespace Microsoft.Extensions.Metrics
         private bool _initialized = false;
         private Dictionary<string, string> _refreshIntervalDictionary;
         private Action<string, IDictionary<string, object>> _eventWritten;
+        private ICollection<string> _providerNames;
 
         // Thread-safe variable to hold the list of all EventSourcesCreated.
         // This class may not be instantiated at the time of EventSource creation, so the list of EventSources should be stored to be enabled after initialization.
         private ConcurrentQueue<EventSource> _eventSources;
 
-        public Listener(Action<string, IDictionary<string, object>> eventWritten)
+        public Listener(ICollection<string> providerNames, Action<string, IDictionary<string, object>> eventWritten)
         {
+            _providerNames = providerNames;
             _eventWritten = eventWritten;
             _refreshIntervalDictionary = new Dictionary<string, string>();
             _refreshIntervalDictionary.Add("EventCounterIntervalSec", _refreshInterval.ToString(CultureInfo.InvariantCulture));
             _initialized = true;
             foreach (var eventSource in _eventSources)
             {
-                EnableEvents(eventSource, EventLevel.Critical, EventKeywords.All, _refreshIntervalDictionary);
+                EnabledIfRequested(eventSource);
             }
         }
 
@@ -46,6 +49,14 @@ namespace Microsoft.Extensions.Metrics
             // If initialization is already done, we can enable EventSource right away.
             // This will take care of all EventSources created after initialization is done.
             if (_initialized)
+            {
+                EnabledIfRequested(eventSource);
+            }
+        }
+
+        private void EnabledIfRequested(EventSource eventSource)
+        {
+            if (_providerNames.Contains(eventSource.Name))
             {
                 EnableEvents(eventSource, EventLevel.Critical, EventKeywords.All, _refreshIntervalDictionary);
             }

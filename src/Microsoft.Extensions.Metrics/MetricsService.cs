@@ -1,9 +1,7 @@
-﻿using Microsoft.AspNetCore.Rewrite.Internal.IISUrlRewrite;
-using Microsoft.Extensions.Hosting;
+﻿using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using System;
-using System.Collections;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -14,17 +12,23 @@ namespace Microsoft.Extensions.Metrics
     {
         private Listener _listener;
         private ILogger _logger;
+        private MetricsServiceOptions _options;
         private static readonly Action<ILogger, string, string, string, Exception> _counterReceived =
-            LoggerMessage.Define<string, string, string>(LogLevel.Information,
+            LoggerMessage.Define<string, string, string>(LogLevel.Trace,
                                                          new EventId(1, "CounterCallbackReceived"),
                                                          "{eventSourceName}:{eventName}={Count}");
 
-        public MetricsService(IMetricsData metrics, ILoggerFactory loggerFactory)
+        public MetricsService(IMetricsData metrics, ILoggerFactory loggerFactory, IOptions<MetricsServiceOptions> options)
         {
+            if (options.Value == null)
+            {
+                throw new ArgumentNullException(nameof(options.Value));
+            }
+            _options = options.Value;
             var map = metrics.Metrics;
-
             _logger = loggerFactory.CreateLogger<MetricsService>();
-            _listener = new Listener((eventSourceName, eventPayload) =>
+            _listener = new Listener(_options.ProviderNames,
+                                    (eventSourceName, eventPayload) =>
             {
                 ICounterPayload payload;
                 if (eventPayload.ContainsKey("CounterType"))
@@ -35,8 +39,8 @@ namespace Microsoft.Extensions.Metrics
                 {
                     payload = eventPayload.Count == 6 ? (ICounterPayload)new IncrementingCounterPayload(eventPayload) : (ICounterPayload)new CounterPayload(eventPayload);
                 }
-                _counterReceived(_logger, eventSourceName, payload.GetName(), payload.GetValue(), null);
-                map[payload.GetName()] = payload.GetValue();
+                _counterReceived(_logger, eventSourceName, payload.Name, payload.Value, null);
+                map[payload.Name] = payload.Value;
             });
         }
 
