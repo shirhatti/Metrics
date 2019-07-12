@@ -12,7 +12,7 @@ namespace Microsoft.Extensions.Metrics
             var sb = new StringBuilder();
             foreach (var metric in Metrics)
             {
-                sb.AppendLine($"{metric.Key} {metric.Value}");
+                sb.AppendLine($"{metric.Key.Replace('-','_').Insert(0,"dotnet_")} {metric.Value}");
             }
             return sb.ToString();
         }
