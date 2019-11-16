@@ -8,10 +8,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    - name: Generate build number
+      uses: einaregilsson/build-number@v1 
+      with:
+        token: ${{secrets.github_token}} 
     - uses: actions/checkout@v1
     - name: Setup .NET Core
       uses: actions/setup-dotnet@v1
       with:
         dotnet-version: 3.0.100
     - name: Build with dotnet
-      run: dotnet pack --configuration Release src/Microsoft.Extensions.Metrics
+      run: dotnet pack --configuration Release src/Microsoft.Extensions.Metrics /p:VersionSuffix=$BUILD_NUMBER
