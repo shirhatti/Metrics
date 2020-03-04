@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Metrics;
 using System.Collections.Generic;
 
 namespace SampleWebApplication
@@ -13,6 +14,7 @@ namespace SampleWebApplication
         // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddSignalR();
             services.AddMetrics();
         }
 
@@ -28,6 +30,7 @@ namespace SampleWebApplication
 
             app.UseEndpoints(endpoints =>
             {
+                endpoints.MapHub<MetricsHub>("/diaghub");
                 endpoints.MapGet("/", async context =>
                 {
                     await context.Response.WriteAsync("Hello World!");
